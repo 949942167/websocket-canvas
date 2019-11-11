@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <meta name="viewport" content="width=750">
+    <script src="js/socket.js"></script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="clear"style="position: fixed;bottom: 0;height: 100px;width: 100px;background: red;display: flex;align-items: center;justify-content: center">清空</div>
+</body>
+<script>
+    var canvas = document.getElementById("canvas");
+    var clear = document.getElementById("clear");
+    var socket;
+    var lastUser;
+    var message={
+        type:"",
+        roomid:"",
+    }
+    clear.onclick = function(){
+        content.clearRect(0, 0, canvas.width, canvas.height);
+        socket.emit("clear", {
+            type:"clear",
+            toRoomId:lastUser.toRoomId
+        })
+    }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    var content = canvas.getContext("2d")
+    var newPoint,lastPoint;
+    var isdrawring = false;
+    canvas.ontouchstart =  canvas.onmousedown = function(e){
+        e.preventDefault();
+        let x = e.clientX || e.touches[0].clientX;
+        let y = e.clientY || e.touches[0].clientY;
+        lastPoint = {"x":x,"y":y};
+        isdrawring = true;
+    };
+    canvas.ontouchmove =  canvas.onmousemove = function(e){
+        e.preventDefault();
+        if(!isdrawring){
+            return;
+        }
+        let x = e.clientX || e.touches[0].clientX;
+        let y = e.clientY || e.touches[0].clientY;
+        newPoint = {"x":x,"y":y}
+        drawLine(lastPoint.x,lastPoint.y,newPoint.x,newPoint.y);
+
+        socket.emit('draw', {
+            beginX: lastPoint.x,
+            beginY: lastPoint.y,
+            endX: newPoint.x,
+            endY: newPoint.y,
+            type:"draw",
+            toRoomId:lastUser.toRoomId
+        },function(data){
+        });
+
+        lastPoint = newPoint;
+    };
+    canvas.ontouchend = canvas.onmouseup = function(e){
+        e.preventDefault();
+        isdrawring = false;
+
+        socket.emit("stop", {
+            type:"stop",
+            toRoomId:lastUser.toRoomId,
+        });
+
+    }
+    function drawLine(x1,y1,x2,y2) {
+        content.beginPath();
+        content.moveTo(x1,y1);
+        content.lineWidth = 10;
+        content.lineCap = "round";
+        content.lineJoin = "round";
+        content.lineTo(x2,y2);
+        content.stroke();
+        content.closePath();
+    }
+    window.onload = function(){
+        socket = io('http://10.235.142.232:8081');
+
+        socket.on("login",(data) => {
+            console.log(data);
+        lastUser = data[data.length-2];
+        console.log("----------lastUser-------");
+        console.log(lastUser);
+        //todo update lastUser
+    })
+    }
+</script>
+</html>
