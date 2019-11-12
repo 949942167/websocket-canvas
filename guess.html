@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>你猜</title>
+    <!--<meta name="viewport" content="width=1920">-->
+    <script src="js/socket.js"></script>
+    <script src="js/socket.js"></script>
+    <script src="https://h5.tv.mi.com/common/js/jquery-1.11.3.min.js"></script>
+    <script src="https://h5.tv.mi.com/common/js/h5_base.js"></script>
+</head>
+<body style="background: #e4ff9f;display: flex;justify-content: center">
+<div >
+    <canvas id="canvas" style="background: red"></canvas>
+</div>
+<div id="socketid" style="position:fixed;bottom: 0;height: 100px;width: 100%;background: gray;display: flex;align-items: center;justify-content: center"></div>
+
+</body>
+<script>
+    var canvas = document.getElementById("canvas");
+    var socket;
+    if(getDeviceType() == "pc"){
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight-100;
+    }else{
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight-100;;
+    }
+
+    var content = canvas.getContext("2d")
+
+    function drawLine(x1,y1,x2,y2) {
+        content.beginPath();
+        content.moveTo(x1,y1);
+        content.lineWidth = 5;
+        content.lineCap = "round";
+        content.lineJoin = "round";
+        content.lineTo(x2,y2);
+        content.stroke();
+        content.closePath();
+    }
+    function backPressed(){
+        log("backPressed");
+        return true;
+    }
+    var conf = {backPressFunction:backPressed}
+    initPage(conf);
+    window.onload = function() {
+        socket = io('http://10.235.142.232:8081');
+        socket.on('draw', function (data) {
+            if(data.device == "pc" && getDeviceType() == "pc"){
+                drawLine(data.beginX , data.beginY , data.endX , data.endY );
+            }else if(data.device == "pc" && getDeviceType() != "pc"){
+                drawLine(data.beginX  *981/ 1920, data.beginY*1660/837 , data.endX*981/ 1920 , data.endY*1660/837  );
+            }else if(data.device != "pc" && getDeviceType() != "pc"){
+                drawLine(data.beginX , data.beginY , data.endX , data.endY );
+            }else if(data.device != "pc" && getDeviceType() == "pc"){
+                drawLine(data.beginX *1920/981, data.beginY*837/1660, data.endX*1920/981, data.endY*837/1660 );
+            }
+        });
+        socket.on('clear', function (data) {
+            content.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        socket.on("login", function (data){
+            document.getElementById("socketid").innerHTML = "本机标识：" + socket.id;
+        });
+    }
+
+    function getDeviceType(){
+        var userAgent = navigator.userAgent.toLowerCase();
+        let bIsIpad = userAgent.match(/ipad/i) == "ipad";
+        let bIsIphoneOs = userAgent.match(/iphone os/i) == "iphone os";
+        let bIsMidp = userAgent.match(/midp/i) == "midp";
+        let bIsUc7 = userAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4";
+        let bIsUc = userAgent.match(/ucweb/i) == "ucweb";
+        let bIsAndroid = userAgent.match(/android/i) == "android";
+        let bIsCE = userAgent.match(/windows ce/i) == "windows ce";
+        let bIsWM = userAgent.match(/windows mobile/i) == "windows mobile";
+        if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {
+            return "touch";
+        } else {
+            return "pc";
+        }
+    }
+</script>
+</html>

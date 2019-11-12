@@ -16,75 +16,73 @@ function handler(req, res) {
 			res.end(data);
 		});
 }
-//问题
-var text;
 var users = [];
-//简历socket连接
-io
-// .of("/a")
-	.on('connection', function(socket) {
 
-		//update users
-		users.push({id:socket.id,toRoomId:socket.id});
-		io.emit('login', users);
-		
-		socket.on('disconnect', function(){
-			console.log('user disconnected');
-			//todo update users
-		});
-		socket.on('draw', function(data,cb) {
-			// console.log(data);
-			// socket.volatile.emit('paint1', data);
-			// socket.broadcast.emit('paint1', data);
-			//向所有客户端广播
-			//
-			console.log("---------draw-------");
-			console.log(data);
+function updateUsers(type,socket){
+	if(type == "add"){
+		let length = users.length;
+		console.log(length);
+		for(let i=0;i < length;i++){
+			if(users[i].id == socket.id){
+				users.splice(i,1);
+				break;
+			}
+		}
+		users.push({id:socket.id,toRoomId:socket.id})
+	}else if(type == "del"){
+		let length = users.length;
+		for(let i=0;i < length;i++){
+			if(users[i].id == socket.id){
+				users.splice(i,1);
+				break;
+			}
+		}
+	}
+}
+io.on('connection', function(socket) {
 
-			if(data.type == "draw"){
-				if(data.toRoomId != ""){
-					socket.broadcast.to(data.toRoomId).emit('draw',data);
-				}else{
-					io.emit('draw', data);
-				}
-			}
-			cb("form server");
-		});
-		//停笔
-		socket.on('stop', function(data) {
-			console.log(data);
-			// io.emit('paint', data);
-			if(data.type == "stop"){
-				if(data.toRoomId != ""){
-					socket.broadcast.to(data.toRoomId).emit('stop',data);
-				}else{
-					io.emit('stop', data);
-				}
-			}
-		});
-		//清空画布
-		socket.on('clear', function(data) {
-			console.log(data);
-			// io.emit('clear', data);
-			if(data.type == "clear"){
-				if(data.toRoomId != ""){
-					socket.broadcast.to(data.toRoomId).emit('clear',data);
-				}else{
-					io.emit('clear', data);
-				}
-			}
-		});
-		//接受画图的描述
-		socket.on('ask', function(data) {
-			console.log('ask:' + data);
-			//把答案保存起来跟猜图回复进行判断
-			text = data;
-			if(data.type == "ask"){
-				if(data.toRoomId != ""){
-					socket.broadcast.to(data.toRoomId).emit('ask',data);
-				}else{
-					io.emit('ask', data);
-				}
-			}
-		});
+	//设备连接成功后加入users，并触发login事件
+	updateUsers("add",socket);
+	io.emit('login', users);
+
+	//断开连接后更新users
+	socket.on('disconnect', function(){
+		updateUsers("del",socket);
 	});
+
+	//画画，让某一个人猜或者所有人猜
+	socket.on('draw', function(data,cb) {
+		if(data.type == "draw"){
+			if(data.toRoomId != ""){
+				socket.broadcast.to(data.toRoomId).emit('draw',data);
+			}else{
+				io.emit('draw', data);
+			}
+		}
+		cb("form server");
+	});
+	//停笔，让某一个人猜或者所有人猜
+	socket.on('stop', function(data) {
+		console.log(data);
+		// io.emit('paint', data);
+		if(data.type == "stop"){
+			if(data.toRoomId != ""){
+				socket.broadcast.to(data.toRoomId).emit('stop',data);
+			}else{
+				io.emit('stop', data);
+			}
+		}
+	});
+	//清空画布，让某一个人猜或者所有人猜
+	socket.on('clear', function(data) {
+		console.log(data);
+		// io.emit('clear', data);
+		if(data.type == "clear"){
+			if(data.toRoomId != ""){
+				socket.broadcast.to(data.toRoomId).emit('clear',data);
+			}else{
+				io.emit('clear', data);
+			}
+		}
+	});
+});

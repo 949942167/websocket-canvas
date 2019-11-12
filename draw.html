@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>我画</title>
+
+    <script src="js/socket.js"></script>
+    <style>
+        .list{
+            position: fixed;
+            bottom: 0;
+            width:100%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+        }
+        .item{
+            height: 90px;
+            width: 90px;
+            margin-top: 5px;
+            margin-left: 5px;
+            background: red;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break:break-all;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="list" id="list">
+    <div class="item" id="clear">清空</div>
+
+</div>
+
+</body>
+<script>
+    var canvas = document.getElementById("canvas");
+    var clear = document.getElementById("clear");
+    var socket;
+    var lastSocket={id:"",toRoomId:""};
+    var listSocket = [];
+    var device = getDeviceType();
+    //    var message={
+    //        type:"",
+    //        roomid:"",
+    //        device:device
+    //    };
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight-100;
+    var content = canvas.getContext("2d")
+    var newPoint,lastPoint;
+    var isdrawring = false;
+    canvas.ontouchstart =  canvas.onmousedown = function(e){
+        e.preventDefault();
+        let x = e.clientX || e.touches[0].clientX;
+        let y = e.clientY || e.touches[0].clientY;
+        lastPoint = {"x":x,"y":y};
+        isdrawring = true;
+    };
+    canvas.ontouchmove =  canvas.onmousemove = function(e){
+        e.preventDefault();
+        if(!isdrawring){
+            return;
+        }
+        let x = e.clientX || e.touches[0].clientX;
+        let y = e.clientY || e.touches[0].clientY;
+        newPoint = {"x":x,"y":y}
+        drawLine(lastPoint.x,lastPoint.y,newPoint.x,newPoint.y);
+
+        socket.emit('draw', {
+            beginX: lastPoint.x,
+            beginY: lastPoint.y,
+            endX: newPoint.x,
+            endY: newPoint.y,
+            type:"draw",
+            toRoomId:lastSocket.toRoomId,
+            device:device,
+            from:socket.id
+        },function(data){
+        });
+
+        lastPoint = newPoint;
+    };
+    canvas.ontouchend = canvas.onmouseup = function(e){
+        e.preventDefault();
+        isdrawring = false;
+
+        socket.emit("stop", {
+            type:"stop",
+            toRoomId:lastSocket.toRoomId,
+            device:device,
+            from:socket.id
+        });
+
+    }
+    function drawLine(x1,y1,x2,y2) {
+        content.beginPath();
+        content.moveTo(x1,y1);
+        content.lineWidth = 10;
+        content.lineCap = "round";
+        content.lineJoin = "round";
+        content.lineTo(x2,y2);
+        content.stroke();
+        content.closePath();
+    }
+
+    document.getElementById("list").onclick = function(e){
+        console.log(e)
+        if(e.target.id == "clear"){
+            content.clearRect(0, 0, canvas.width, canvas.height);
+            socket.emit("clear", {
+                type:"clear",
+                toRoomId:lastSocket.toRoomId,
+                device:device,
+                from:socket.id
+            })
+        }else{
+            var id = e.target.id;
+            if(e.target.className.indexOf("item")>-1  && id.indexOf("item") > -1){
+                var index = id.replace("item","");
+                if(e.target.style.background == "blue"){
+                    e.target.style.background ="red";
+                    lastSocket = {id:"",toRoomId:""};
+                }else{
+                    e.target.style.background ="blue";
+                    lastSocket = listSocket[index];
+                }
+
+            }
+        }
+    }
+    window.onload = function(){
+        socket = io('http://10.235.142.232:8081');
+        socket.on("login",function(data){
+            console.log(data)
+            listSocket = data;
+            var html = "<div class='item' id='clear'>清空(本机编号："+socket.id+")</div>";
+            let length = listSocket.length;
+            for(let i=0;i < length;i++){
+                if(listSocket[i].id == socket.id){
+                    listSocket.splice(i,1);
+                    break;
+                }
+            }
+            for(i=0; i < listSocket.length; i++){
+                html += "<div class='item' id='item"+i+"'"+" >让谁猜:"+listSocket[i].id+"</div>"
+            }
+            document.getElementById("list").innerHTML = html;
+        });
+        socket.on('draw', function(data,cb) {
+            if(data.from != socket.id){
+                alert("我只会画，不会猜")
+            }
+        });
+    }
+    function getDeviceType(){
+        var userAgent = navigator.userAgent.toLowerCase();
+        let bIsIpad = userAgent.match(/ipad/i) == "ipad";
+        let bIsIphoneOs = userAgent.match(/iphone os/i) == "iphone os";
+        let bIsMidp = userAgent.match(/midp/i) == "midp";
+        let bIsUc7 = userAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4";
+        let bIsUc = userAgent.match(/ucweb/i) == "ucweb";
+        let bIsAndroid = userAgent.match(/android/i) == "android";
+        let bIsCE = userAgent.match(/windows ce/i) == "windows ce";
+        let bIsWM = userAgent.match(/windows mobile/i) == "windows mobile";
+        if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {
+            return "mb";
+        } else {
+            return "pc";
+        }
+    }
+</script>
+</html>
