@@ -55,7 +55,10 @@
     initPage(conf);
     window.onload = function() {
         socket = io('http://10.235.142.232:8081');
-
+        console.log("--------");
+        var s = {};
+        $.extend(true,s, socket);
+        console.log(s);
         socket.on('draw', function (data) {
             if(data.device == "pc" && getDeviceType() == "pc"){
                 drawLine(data.beginX , data.beginY , data.endX , data.endY );
@@ -72,6 +75,8 @@
         });
         socket.on("login", function (data){
             document.getElementById("socketid").innerHTML = "本机标识：" + socket.id;
+            console.log("++++++++++++");
+            console.log(socket);
         });
     }
 

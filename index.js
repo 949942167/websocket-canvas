@@ -48,6 +48,8 @@ io.on('connection', function(socket) {
 	//断开连接后更新users
 	socket.on('disconnect', function(){
 		updateUsers("del",socket);
+		io.emit('login', users);
+
 	});
 
 	//画画，让某一个人猜或者所有人猜
