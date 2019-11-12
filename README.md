@@ -1,6 +1,5 @@
 # 你画我猜DEMO
 背景：针对智能电视H5和手机H5实现跨屏活动，此dome不涉及画画命题及提交和校验猜题
-
 ```
 1.npm install socket.io
 2.node index

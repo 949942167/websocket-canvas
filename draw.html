@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>我画</title>
-
+    <meta name="viewport">
     <script src="js/socket.js"></script>
     <style>
         .list{
@@ -42,11 +42,7 @@
     var lastSocket={id:"",toRoomId:""};
     var listSocket = [];
     var device = getDeviceType();
-    //    var message={
-    //        type:"",
-    //        roomid:"",
-    //        device:device
-    //    };
+
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight-100;
@@ -166,8 +162,9 @@
         let bIsAndroid = userAgent.match(/android/i) == "android";
         let bIsCE = userAgent.match(/windows ce/i) == "windows ce";
         let bIsWM = userAgent.match(/windows mobile/i) == "windows mobile";
-        if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {
-            return "mb";
+        let mitv = userAgent.match(/mitv/i) != "mitv";
+        if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || (bIsAndroid && mitv) || bIsCE || bIsWM ) {
+            return "touch";
         } else {
             return "pc";
         }
